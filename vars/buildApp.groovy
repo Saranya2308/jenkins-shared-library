@@ -1,30 +1,40 @@
-def call() {
-    echo "🔧 Starting build step..."
-
-    def appDir = "shopping-app"
-
+def buildApp(appDir) {
+    // Check if package.json exists for Node.js
     if (fileExists("${appDir}/package.json")) {
         echo "📦 Detected Node.js project"
-        dir(appDir) {
-            sh 'npm install'
-            sh 'npm run build'
+        dir("${appDir}") {
+            // Install dependencies
+            bat 'npm install'
+            // Run the build (change 'build' if you use another script in package.json)
+            bat 'npm run build'
         }
-    } else if (fileExists("${appDir}/pom.xml")) {
-        echo "☕ Detected Java Maven project"
-        dir(appDir) {
-            sh 'mvn clean install'
+    }
+    // Check if pom.xml exists for Maven (Java)
+    else if (fileExists("${appDir}/pom.xml")) {
+        echo "☕ Detected Java (Maven) project"
+        dir("${appDir}") {
+            // Run Maven clean install
+            bat 'mvn clean install'
         }
-    } else if (fileExists("${appDir}/build.gradle")) {
-        echo "🎯 Detected Java Gradle project"
-        dir(appDir) {
-            sh './gradlew build'
+    }
+    // Check if build.gradle exists for Gradle (Java)
+    else if (fileExists("${appDir}/build.gradle")) {
+        echo "☕ Detected Java (Gradle) project"
+        dir("${appDir}") {
+            // Run Gradle build
+            bat 'gradle build'
         }
-    } else if (fileExists("${appDir}/requirements.txt")) {
-        echo "🐍 Detected Python project"
-        dir(appDir) {
-            sh 'pip install -r requirements.txt'
+    }
+    // Check if a Dockerfile exists
+    else if (fileExists("${appDir}/Dockerfile")) {
+        echo "🐳 Detected Docker project"
+        dir("${appDir}") {
+            // Build Docker image
+            bat 'docker build -t my-app .'
         }
-    } else {
-        error "❌ Could not detect project type for build in '${appDir}'"
+    }
+    // If no recognized build file is found
+    else {
+        error "❌ No recognized build file found in '${appDir}'."
     }
 }
