@@ -1,41 +1,42 @@
-// vars/buildApp.groovy
+def call(String serviceName) {
+    echo "Starting build process for ${serviceName}..."
 
-def call(String appDir) {
-    echo "Starting build process for ${appDir}..."
+    // Construct the build context path
+    def buildContext = "${serviceName}/src"
 
-    if (fileExists("${appDir}/package.json")) {
-        echo "📦 Detected Node.js project in '${appDir}'"
-        dir("${appDir}") {
-            echo "Installing dependencies..."
-            bat(script: 'npm install', returnStdout: true).eachLine { line -> echo line }
+    if (!fileExists("${buildContext}/package.json") &&
+        !fileExists("${buildContext}/pom.xml") &&
+        !fileExists("${buildContext}/build.gradle") &&
+        !fileExists("${buildContext}/Dockerfile")) {
+        error "❌ No recognized build file found in '${buildContext}'. Ensure you have a package.json, pom.xml, build.gradle, or Dockerfile."
+    }
 
-            def packageJson = readJSON file: 'package.json'
-            if (packageJson.scripts?.build) {
-                echo "Running build..."
-                bat(script: 'npm run build', returnStdout: true).eachLine { line -> echo line }
+    dir(buildContext) {
+        if (fileExists("package.json")) {
+            echo "📦 Detected Node.js project"
+            if (isUnix()) {
+                sh 'npm install'
+                sh 'npm run build'
             } else {
-                echo "⚠️ No 'build' script found in package.json. Skipping build step."
+                bat 'npm install'
+                bat 'npm run build'
             }
+        } else if (fileExists("pom.xml")) {
+            echo "☕ Detected Maven project"
+            if (isUnix()) {
+                sh 'mvn clean install'
+            } else {
+                bat 'mvn clean install'
+            }
+        } else if (fileExists("build.gradle")) {
+            echo "🐘 Detected Gradle project"
+            if (isUnix()) {
+                sh './gradlew build'
+            } else {
+                bat 'gradlew.bat build'
+            }
+        } else if (fileExists("Dockerfile")) {
+            echo "🐳 No app build file found, but Dockerfile is present. Will build Docker image later."
         }
-    } else if (fileExists("${appDir}/pom.xml")) {
-        echo "☕ Detected Java (Maven) project in '${appDir}'"
-        dir("${appDir}") {
-            echo "Running Maven clean install..."
-            bat(script: 'mvn clean install', returnStdout: true).eachLine { line -> echo line }
-        }
-    } else if (fileExists("${appDir}/build.gradle")) {
-        echo "☕ Detected Java (Gradle) project in '${appDir}'"
-        dir("${appDir}") {
-            echo "Running Gradle build..."
-            bat(script: 'gradle build', returnStdout: true).eachLine { line -> echo line }
-        }
-    } else if (fileExists("${appDir}/Dockerfile")) {
-        echo "🐳 Detected Docker project in '${appDir}'"
-        dir("${appDir}") {
-            echo "Building Docker image..."
-            bat(script: 'docker build -t my-app .', returnStdout: true).eachLine { line -> echo line }
-        }
-    } else {
-        error "❌ No recognized build file found in '${appDir}'. Ensure you have a package.json, pom.xml, build.gradle, or Dockerfile."
     }
 }
