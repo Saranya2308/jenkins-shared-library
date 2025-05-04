@@ -1,5 +1,8 @@
-def call() {
-    echo "🐳 Building and pushing Docker image..."
+def call(String serviceName) {
+    echo "🐳 Building and pushing Docker image for ${serviceName}..."
+
+    // Set the build context to the 'src' directory of the service
+    def buildContext = "${serviceName}/src"
 
     // Get Docker image tag based on build number or commit hash
     def tag = "${env.BUILD_NUMBER ?: 'latest'}"
@@ -9,15 +12,23 @@ def call() {
     }
 
     // Set the image name
-    def imageName = "my-docker-repo/my-app:${tag}"
+    def imageName = "my-docker-repo/${serviceName}:${tag}"
 
     // Build the Docker image
-    echo "Building Docker image: ${imageName}"
-    sh "docker build -t ${imageName} ."
+    echo "Building Docker image: ${imageName} from ${buildContext}"
+    if (isUnix()) {
+        sh "docker build -t ${imageName} -f ${buildContext}/Dockerfile ${buildContext}"
+    } else {
+        bat "docker build -t ${imageName} -f ${buildContext}/Dockerfile ${buildContext}"
+    }
 
     // Push to Docker registry
     echo "Pushing Docker image: ${imageName}"
-    sh "docker push ${imageName}"
+    if (isUnix()) {
+        sh "docker push ${imageName}"
+    } else {
+        bat "docker push ${imageName}"
+    }
 
-    echo "✅ Docker build and push completed"
+    echo "✅ Docker build and push completed for ${serviceName}"
 }
