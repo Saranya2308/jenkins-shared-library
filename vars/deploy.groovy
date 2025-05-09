@@ -4,7 +4,8 @@ def call(Map config) {
         stages {
             stage('Deploy to Kubernetes') {
                 steps {
-                    sh "kubectl apply -f k8s/${config.serviceName}.yaml"
+                    // Use 'bat' for running commands on Windows instead of 'sh'
+                    bat "kubectl apply -f k8s/${config.serviceName}.yaml"
                 }
             }
         }
