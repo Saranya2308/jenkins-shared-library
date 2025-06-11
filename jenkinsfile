@@ -1,0 +1,36 @@
+@Library('my-shared-library') _
+
+pipeline {
+    agent any
+
+    stages {
+        stage('Build and Push Docker Image') {
+            steps {
+                build(
+                    repoUrl: 'https://github.com/myorg/myapp.git',
+                    imageName: 'myapp',
+                    registry: 'myregistry.io',
+                    dockerCredentialsId: 'docker-creds'
+                )
+            }
+        }
+
+        stage('Run Tests') {
+            steps {
+                testApp('myapp')
+            }
+        }
+
+        stage('SonarQube Analysis') {
+            steps {
+                sonarScan(projectKey: 'myapp-project-key')
+            }
+        }
+
+        stage('Deploy to Kubernetes') {
+            steps {
+                deploy(serviceName: 'myapp')
+            }
+        }
+    }
+}
